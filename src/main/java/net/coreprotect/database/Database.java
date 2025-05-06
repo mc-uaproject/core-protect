@@ -1,22 +1,5 @@
 package net.coreprotect.database;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-
 import net.coreprotect.config.Config;
 import net.coreprotect.config.ConfigHandler;
 import net.coreprotect.consumer.Consumer;
@@ -28,6 +11,12 @@ import net.coreprotect.utility.Chat;
 import net.coreprotect.utility.Color;
 import net.coreprotect.utility.ItemUtils;
 import net.coreprotect.utility.MaterialUtils;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
+import java.sql.*;
+import java.util.*;
 
 public class Database extends Queue {
 
@@ -66,7 +55,7 @@ public class Database extends Queue {
         SQL_QUERIES.put(ART, "INSERT INTO %sprefix%art_map (id, art) VALUES (?, ?)");
         SQL_QUERIES.put(ENTITY_MAP, "INSERT INTO %sprefix%entity_map (id, entity) VALUES (?, ?)");
         SQL_QUERIES.put(BLOCKDATA, "INSERT INTO %sprefix%blockdata_map (id, data) VALUES (?, ?)");
-        SQL_QUERIES.put(ABILITY, "INSERT INTO + %sprefix%ability (time, user, wid, x, y, z, ability) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        SQL_QUERIES.put(ABILITY, "INSERT INTO %sprefix%ability (time, user, wid, x, y, z, ability) VALUES (?, ?, ?, ?, ?, ?, ?)");
         SQL_QUERIES.put(ABILITY_BLOCK, "INSERT INTO %sprefix%ability_block (time, user, wid, x, y, z, type, data, meta, blockdata, action, rolled_back, player, ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     }
 
@@ -234,6 +223,7 @@ public class Database extends Queue {
         PreparedStatement preparedStatement = null;
         try {
             String query = SQL_QUERIES.get(type);
+            // Chat.sendConsoleMessage("Preparing prepared statement for " + type);
             if (query != null) {
                 query = query.replace("%sprefix%", ConfigHandler.prefix);
                 preparedStatement = prepareStatement(connection, query, keys);
@@ -300,8 +290,7 @@ public class Database extends Queue {
 
         if (mySQL) {
             createMySQLTables(prefix, forceConnection, purge);
-        }
-        else {
+        } else {
             createSQLiteTables(prefix, forcePrefix, forceConnection, purge);
         }
     }
@@ -318,8 +307,7 @@ public class Database extends Queue {
                 statement.close();
                 success = true;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         if (!success && forceConnection == null) {
@@ -422,8 +410,7 @@ public class Database extends Queue {
                 initializeTables(prefix, statement);
             }
             statement.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -435,8 +422,7 @@ public class Database extends Queue {
             String type = rs.getString("type");
             if (type.equalsIgnoreCase("table")) {
                 tableData.add(rs.getString("name"));
-            }
-            else if (type.equalsIgnoreCase("index")) {
+            } else if (type.equalsIgnoreCase("index")) {
                 indexData.add(rs.getString("name"));
             }
         }
@@ -538,8 +524,7 @@ public class Database extends Queue {
             createSQLiteIndex(statement, indexData, attachDatabase, "uuid_index", prefix + "user(uuid)");
             createSQLiteIndex(statement, indexData, attachDatabase, "username_log_uuid_index", prefix + "username_log(uuid,user)");
             createSQLiteIndex(statement, indexData, attachDatabase, "world_id_index", prefix + "world(id)");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Chat.console(Phrase.build(Phrase.DATABASE_INDEX_ERROR));
             if (purge) {
                 e.printStackTrace();

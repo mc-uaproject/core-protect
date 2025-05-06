@@ -331,6 +331,21 @@ public class CoreProtectAPI extends Queue {
         return false;
     }
 
+    public boolean logAbility(Player player, String ability) {
+        if (Config.getGlobal().API_ENABLED && player != null && Config.getConfig(player.getWorld()).PLAYER_COMMANDS) {
+            if (ability != null) {
+                if (!ability.isEmpty()) {
+                    long timestamp = System.currentTimeMillis() / 1000L;
+
+                    Queue.queuePlayerAbility(player, ability, timestamp);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Logs a block placement by a user with a specific material and block data.
      *

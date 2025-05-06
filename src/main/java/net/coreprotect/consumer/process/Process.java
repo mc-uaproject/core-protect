@@ -13,7 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -52,7 +51,6 @@ public class Process {
     public static final int ABILITY_BLOCK_BREAK = 31;
     public static final int ABILITY_BLOCK_PLACE = 32;
     public static final int ABILITY_BLOCK_ROLLBACK_UPDATE = 33;
-    private static final Logger log = LoggerFactory.getLogger(Process.class);
 
     public static int lastLockUpdate = 0;
     private static volatile int currentConsumerSize = 0;
@@ -116,7 +114,7 @@ public class Process {
             // Create prepared statements
             PreparedStatement preparedStmtSigns = Database.prepareStatement(connection, Database.SIGN, false);
             PreparedStatement preparedStmtBlocks = Database.prepareStatement(connection, Database.BLOCK, false);
-//            PreparedStatement preparedStmtSkulls = Database.prepareStatement(connection, Database.SKULL, true);
+            PreparedStatement preparedStmtSkulls = Database.prepareStatement(connection, Database.SKULL, true);
             PreparedStatement preparedStmtContainers = Database.prepareStatement(connection, Database.CONTAINER, false);
             PreparedStatement preparedStmtItems = Database.prepareStatement(connection, Database.ITEM, false);
             PreparedStatement preparedStmtWorlds = Database.prepareStatement(connection, Database.WORLD, false);
@@ -153,10 +151,10 @@ public class Process {
                         try {
                             switch (action) {
                                 case Process.BLOCK_BREAK:
-                                    BlockBreakProcess.process(preparedStmtBlocks, i, processId, id, blockType, blockData, replaceType, forceData, user, object, (String) data[7]);
+                                    BlockBreakProcess.process(preparedStmtBlocks, preparedStmtSkulls, i, processId, id, blockType, blockData, replaceType, forceData, user, object, (String) data[7]);
                                     break;
                                 case Process.BLOCK_PLACE:
-                                    BlockPlaceProcess.process(preparedStmtBlocks, i, blockType, blockData, replaceType, replaceData, forceData, user, object, (String) data[7], (String) data[8]);
+                                    BlockPlaceProcess.process(preparedStmtBlocks, preparedStmtSkulls, i, blockType, blockData, replaceType, replaceData, forceData, user, object, (String) data[7], (String) data[8]);
                                     break;
                                 case Process.ABILITY_BLOCK_BREAK:
                                     AbilityBlockBreakProcess.process(preparedStmtAbilityBlock, i, blockType, blockData, user, object, (String) data[7], (String) data[8], (String) data[9]);
@@ -307,7 +305,7 @@ public class Process {
         Consumer.isPaused = false;
     }
 
-    private static void commit(Statement statement, PreparedStatement preparedStmtSigns, PreparedStatement preparedStmtBlocks, PreparedStatement preparedStmtContainers, PreparedStatement preparedStmtItems, PreparedStatement preparedStmtWorlds, PreparedStatement preparedStmtChat, PreparedStatement preparedStmtCommand, PreparedStatement preparedStatementAbilty, PreparedStatement preparedStmtSession, PreparedStatement preparedStmtEntities, PreparedStatement preparedStmtMaterials, PreparedStatement preparedStmtArt, PreparedStatement preparedStmtEntity, PreparedStatement preparedStmtBlockdata) {
+    private static void commit(Statement statement, PreparedStatement preparedStmtSigns, PreparedStatement preparedStmtBlocks, PreparedStatement preparedStmtContainers, PreparedStatement preparedStmtItems, PreparedStatement preparedStmtWorlds, PreparedStatement preparedStmtChat, PreparedStatement preparedStmtCommand, PreparedStatement preparedStatementAbility, PreparedStatement preparedStmtSession, PreparedStatement preparedStmtEntities, PreparedStatement preparedStmtMaterials, PreparedStatement preparedStmtArt, PreparedStatement preparedStmtEntity, PreparedStatement preparedStmtBlockdata) {
         try {
             preparedStmtSigns.executeBatch();
             preparedStmtBlocks.executeBatch();
@@ -317,7 +315,7 @@ public class Process {
             preparedStmtWorlds.executeBatch();
             preparedStmtChat.executeBatch();
             preparedStmtCommand.executeBatch();
-            preparedStatementAbilty.executeBatch();
+            preparedStatementAbility.executeBatch();
             preparedStmtSession.executeBatch();
             preparedStmtEntities.executeBatch();
             preparedStmtMaterials.executeBatch();

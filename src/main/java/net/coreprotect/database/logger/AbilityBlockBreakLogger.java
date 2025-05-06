@@ -8,7 +8,9 @@ import net.coreprotect.database.statement.AbilityBlockStatement;
 import net.coreprotect.database.statement.UserStatement;
 import net.coreprotect.event.CoreProtectPreLogEvent;
 import net.coreprotect.thread.CacheHandler;
+import net.coreprotect.utility.MaterialUtils;
 import net.coreprotect.utility.Util;
+import net.coreprotect.utility.WorldUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,7 +32,7 @@ public class AbilityBlockBreakLogger {
                 return;
             }
 
-            Material checkType = Util.getType(type);
+            Material checkType = MaterialUtils.getType(type);
             if (checkType == null) {
                 return;
             } else if (checkType.equals(Material.AIR) || checkType.equals(Material.CAVE_AIR)) {
@@ -42,7 +44,7 @@ public class AbilityBlockBreakLogger {
             }
 
             if (!user.startsWith("#")) {
-                String cacheId = location.getBlockX() + "." + location.getBlockY() + "." + location.getBlockZ() + "." + Util.getWorldId(location.getWorld().getName());
+                String cacheId = location.getBlockX() + "." + location.getBlockY() + "." + location.getBlockZ() + "." + WorldUtils.getWorldId(location.getWorld().getName());
                 CacheHandler.spreadCache.remove(cacheId);
             }
 
@@ -58,7 +60,7 @@ public class AbilityBlockBreakLogger {
             }
 
             int userId = UserStatement.getId(preparedStmt, event.getUser(), true);
-            int wid = Util.getWorldId(location.getWorld().getName());
+            int wid = WorldUtils.getWorldId(location.getWorld().getName());
             int time = (int) (System.currentTimeMillis() / 1000L);
             int x = location.getBlockX();
             int y = location.getBlockY();

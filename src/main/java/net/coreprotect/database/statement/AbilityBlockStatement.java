@@ -1,5 +1,7 @@
 package net.coreprotect.database.statement;
 
+import net.coreprotect.utility.BlockUtils;
+import net.coreprotect.utility.ItemUtils;
 import net.coreprotect.utility.Util;
 
 import java.sql.PreparedStatement;
@@ -13,11 +15,11 @@ public class AbilityBlockStatement {
 
     public static void insert(PreparedStatement preparedStmt, int batchCount, int time, int id, int wid, int x, int y, int z, int type, int data, List<Object> meta, String blockData, int action, int rolledBack, String player, String ability) {
         try {
-            byte[] bBlockData = Util.stringToByteData(blockData, type);
+            byte[] bBlockData = BlockUtils.stringToByteData(blockData, type);
             byte[] byteData = null;
 
             if (meta != null) {
-                byteData = Util.convertByteData(meta);
+                byteData = ItemUtils.convertByteData(meta);
             }
 
             preparedStmt.setInt(1, time);
