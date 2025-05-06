@@ -1,14 +1,8 @@
 package net.coreprotect.consumer;
 
-import net.coreprotect.CoreProtect;
-import net.coreprotect.bukkit.BukkitAdapter;
-import net.coreprotect.config.Config;
-import net.coreprotect.config.ConfigHandler;
-import net.coreprotect.consumer.process.Process;
-import net.coreprotect.listener.block.BlockUtil;
-import net.coreprotect.model.BlockGroup;
-import net.coreprotect.thread.Scheduler;
-import net.coreprotect.utility.Util;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,8 +17,16 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
+import net.coreprotect.CoreProtect;
+import net.coreprotect.bukkit.BukkitAdapter;
+import net.coreprotect.config.Config;
+import net.coreprotect.config.ConfigHandler;
+import net.coreprotect.consumer.process.Process;
+import net.coreprotect.listener.block.BlockUtil;
+import net.coreprotect.model.BlockGroup;
+import net.coreprotect.thread.Scheduler;
+import net.coreprotect.utility.BlockUtils;
+import net.coreprotect.utility.EntityUtils;
 
 public class Queue {
 
@@ -102,7 +104,7 @@ public class Queue {
     protected static void queueAbilityBlockBreak(String user, String ability, String player, BlockState block, Material type, String blockData, Material breakType, int extraData, int blockNumber) {
         if (type == Material.SPAWNER && block instanceof CreatureSpawner) { // Mob spawner
             CreatureSpawner mobSpawner = (CreatureSpawner) block;
-            extraData = Util.getSpawnerType(mobSpawner.getSpawnedType());
+            extraData = EntityUtils.getSpawnerType(mobSpawner.getSpawnedType());
         } else if (type == Material.IRON_DOOR || BlockGroup.DOORS.contains(type) || type.equals(Material.SUNFLOWER) || type.equals(Material.LILAC) || type.equals(Material.TALL_GRASS) || type.equals(Material.LARGE_FERN) || type.equals(Material.ROSE_BUSH) || type.equals(Material.PEONY)) { // Double plant
             if (block.getBlockData() instanceof Bisected) {
                 if (((Bisected) block.getBlockData()).getHalf().equals(Half.TOP)) {
@@ -141,7 +143,7 @@ public class Queue {
 
         if (type == Material.SPAWNER && blockLocation instanceof CreatureSpawner) { // Mob spawner
             CreatureSpawner mobSpawner = (CreatureSpawner) blockLocation;
-            data = Util.getSpawnerType(mobSpawner.getSpawnedType());
+            data = EntityUtils.getSpawnerType(mobSpawner.getSpawnedType());
             forceData = 1;
         }
 
@@ -180,8 +182,9 @@ public class Queue {
     protected static void queueBlockBreak(String user, BlockState block, Material type, String blockData, Material breakType, int extraData, int blockNumber) {
         if (type == Material.SPAWNER && block instanceof CreatureSpawner) { // Mob spawner
             CreatureSpawner mobSpawner = (CreatureSpawner) block;
-            extraData = Util.getSpawnerType(mobSpawner.getSpawnedType());
-        } else if (type == Material.IRON_DOOR || BlockGroup.DOORS.contains(type) || type.equals(Material.SUNFLOWER) || type.equals(Material.LILAC) || type.equals(Material.TALL_GRASS) || type.equals(Material.LARGE_FERN) || type.equals(Material.ROSE_BUSH) || type.equals(Material.PEONY)) { // Double plant
+            extraData = EntityUtils.getSpawnerType(mobSpawner.getSpawnedType());
+        }
+        else if (type == Material.IRON_DOOR || BlockGroup.DOORS.contains(type) || type.equals(Material.SUNFLOWER) || type.equals(Material.LILAC) || type.equals(Material.TALL_GRASS) || type.equals(Material.LARGE_FERN) || type.equals(Material.ROSE_BUSH) || type.equals(Material.PEONY)) { // Double plant
             if (block.getBlockData() instanceof Bisected) {
                 if (((Bisected) block.getBlockData()).getHalf().equals(Half.TOP)) {
                     if (blockNumber == 5) {
@@ -219,7 +222,7 @@ public class Queue {
 
         if (type == Material.SPAWNER && blockLocation instanceof CreatureSpawner) { // Mob spawner
             CreatureSpawner mobSpawner = (CreatureSpawner) blockLocation;
-            data = Util.getSpawnerType(mobSpawner.getSpawnedType());
+            data = EntityUtils.getSpawnerType(mobSpawner.getSpawnedType());
             forceData = 1;
         }
 
@@ -442,9 +445,9 @@ public class Queue {
         */
         int currentConsumer = Consumer.currentConsumer;
         int consumerId = Consumer.newConsumerId(currentConsumer);
-        addConsumer(currentConsumer, new Object[]{consumerId, Process.SIGN_TEXT, null, color, null, action, offset, null});
-        Consumer.consumerSigns.get(currentConsumer).put(consumerId, new Object[]{colorSecondary, Util.getSignData(frontGlowing, backGlowing), isWaxed, isFront, line1, line2, line3, line4, line5, line6, line7, line8});
-        queueStandardData(consumerId, currentConsumer, new String[]{user, null}, location);
+        addConsumer(currentConsumer, new Object[] { consumerId, Process.SIGN_TEXT, null, color, null, action, offset, null });
+        Consumer.consumerSigns.get(currentConsumer).put(consumerId, new Object[] { colorSecondary, BlockUtils.getSignData(frontGlowing, backGlowing), isWaxed, isFront, line1, line2, line3, line4, line5, line6, line7, line8 });
+        queueStandardData(consumerId, currentConsumer, new String[] { user, null }, location);
     }
 
     protected static void queueSignUpdate(String user, BlockState block, int action, int time) {
