@@ -1,22 +1,6 @@
 package net.coreprotect.command.lookup;
 
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.Statement;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-
 import com.google.common.base.Strings;
-
 import net.coreprotect.config.ConfigHandler;
 import net.coreprotect.database.Database;
 import net.coreprotect.database.Lookup;
@@ -27,14 +11,21 @@ import net.coreprotect.language.Phrase;
 import net.coreprotect.language.Selector;
 import net.coreprotect.listener.channel.PluginChannelHandshakeListener;
 import net.coreprotect.listener.channel.PluginChannelListener;
-import net.coreprotect.utility.Chat;
-import net.coreprotect.utility.ChatUtils;
-import net.coreprotect.utility.Color;
-import net.coreprotect.utility.EntityUtils;
-import net.coreprotect.utility.ItemUtils;
-import net.coreprotect.utility.MaterialUtils;
-import net.coreprotect.utility.StringUtils;
-import net.coreprotect.utility.WorldUtils;
+import net.coreprotect.utility.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.Statement;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class StandardLookupThread implements Runnable {
     private final CommandSender player;
@@ -92,7 +83,7 @@ public class StandardLookupThread implements Runnable {
     @Override
     public void run() {
         try (Connection connection = Database.getConnection(true)) {
-            ConfigHandler.lookupThrottle.put(player.getName(), new Object[] { true, System.currentTimeMillis() });
+            ConfigHandler.lookupThrottle.put(player.getName(), new Object[]{true, System.currentTimeMillis()});
 
             List<String> uuidList = new ArrayList<>();
             Location finalLocation = location;
@@ -118,15 +109,13 @@ public class StandardLookupThread implements Runnable {
                         if (!exists) {
                             baduser = check;
                             break;
-                        }
-                        else if (actions.contains(9)) {
+                        } else if (actions.contains(9)) {
                             if (ConfigHandler.uuidCache.get(check.toLowerCase(Locale.ROOT)) != null) {
                                 String uuid = ConfigHandler.uuidCache.get(check.toLowerCase(Locale.ROOT));
                                 uuidList.add(uuid);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         exists = true;
                     }
                 }
@@ -138,8 +127,7 @@ public class StandardLookupThread implements Runnable {
                                 baduser = check;
                                 break;
                             }
-                        }
-                        else if (check.equals("#global")) {
+                        } else if (check.equals("#global")) {
                             baduser = "#global";
                             exists = false;
                         }
@@ -163,12 +151,11 @@ public class StandardLookupThread implements Runnable {
                     if (argWorldId > 0) {
                         restrict_world = true;
                         finalLocation = new Location(Bukkit.getServer().getWorld(WorldUtils.getWorldName(argWorldId)), x, y, z);
-                    }
-                    else if (finalLocation != null) {
+                    } else if (finalLocation != null) {
                         finalLocation = new Location(Bukkit.getServer().getWorld(WorldUtils.getWorldName(worldId)), x, y, z);
                     }
 
-                    Long[] rowData = new Long[] { 0L, 0L, 0L, 0L };
+                    Long[] rowData = new Long[]{0L, 0L, 0L, 0L};
                     long rowMax = (long) page * displayResults;
                     long pageStart = rowMax - displayResults;
                     long rows = 0L;
@@ -191,12 +178,99 @@ public class StandardLookupThread implements Runnable {
                     if (count) {
                         String row_format = NumberFormat.getInstance().format(rows);
                         Chat.sendMessage(player, Color.DARK_AQUA + "CoreProtect " + Color.WHITE + "- " + Phrase.build(Phrase.LOOKUP_ROWS_FOUND, row_format, (rows == 1 ? Selector.FIRST : Selector.SECOND)));
-                    }
-                    else if (pageStart < rows) {
+                    } else if (pageStart < rows) {
                         List<String[]> lookupList = Lookup.performPartialLookup(statement, player, uuidList, userList, blockList, excludedBlocks, excludedUsers, actions, finalLocation, radius, rowData, timeStart, timeEnd, (int) pageStart, displayResults, restrict_world, true);
 
                         Chat.sendMessage(player, Color.WHITE + "----- " + Color.DARK_AQUA + Phrase.build(Phrase.LOOKUP_HEADER, "CoreProtect" + Color.WHITE + " | " + Color.DARK_AQUA) + Color.WHITE + " -----");
-                        if (actions.contains(6) || actions.contains(7)) { // Chat/command
+                        if (actions.contains(13) || actions.contains(14)) {
+                            for (String[] data : lookupList) {
+                                int drb = Integer.parseInt(data[8]);
+                                String rbd = "";
+                                if (drb == 1 || drb == 3) {
+                                    rbd = Color.STRIKETHROUGH;
+                                }
+
+                                String time = data[0];
+                                String dplayer = data[1];
+                                int x = Integer.parseInt(data[2]);
+                                int y = Integer.parseInt(data[3]);
+                                int z = Integer.parseInt(data[4]);
+                                int dtype = Integer.parseInt(data[5]);
+                                int ddata = Integer.parseInt(data[6]);
+                                int daction = Integer.parseInt(data[7]);
+                                int wid = Integer.parseInt(data[9]);
+                                int amount = Integer.parseInt(data[10]);
+                                String player = data[data.length - 2];
+                                String ability = data[data.length - 1];
+
+//                                if (player == null || ability == null || player.isEmpty() || ability.isEmpty()) {
+//                                    continue;
+//                                }
+
+                                String tag = Color.WHITE + "-";
+
+                                String timeago = ChatUtils.getTimeSince(Integer.parseInt(time), unixtimestamp, true);
+                                int timeLength = 50 + (ChatUtils.getTimeSince(Integer.parseInt(time), unixtimestamp, false).replaceAll("[^0-9]", "").length() * 6);
+                                String leftPadding = Color.BOLD + Strings.padStart("", 10, ' ');
+                                if (timeLength % 4 == 0) {
+                                    leftPadding = Strings.padStart("", timeLength / 4, ' ');
+                                } else {
+                                    leftPadding = leftPadding + Color.WHITE + Strings.padStart("", (timeLength - 50) / 4, ' ');
+                                }
+
+                                String dname = "";
+                                boolean isPlayer = false;
+                                if (daction == 3 && !actions.contains(11) && amount == -1) {
+                                    if (dtype == 0) {
+                                        if (ConfigHandler.playerIdCacheReversed.get(ddata) == null) {
+                                            UserStatement.loadName(connection, ddata);
+                                        }
+                                        dname = ConfigHandler.playerIdCacheReversed.get(ddata);
+                                        isPlayer = true;
+                                    } else {
+                                        dname = EntityUtils.getEntityType(dtype).name();
+                                    }
+                                } else {
+                                    dname = MaterialUtils.getType(dtype).name().toLowerCase(Locale.ROOT);
+                                    dname = StringUtils.nameFilter(dname, ddata);
+                                }
+                                if (dname.length() > 0 && !isPlayer) {
+                                    dname = "minecraft:" + dname.toLowerCase(Locale.ROOT) + "";
+                                }
+
+                                // Hide "minecraft:" for now.
+                                if (dname.contains("minecraft:")) {
+                                    String[] blockNameSplit = dname.split(":");
+                                    dname = blockNameSplit[1];
+                                }
+
+                                // Functions.sendMessage(player2, timeago+" " + ChatColors.WHITE + "- " + ChatColors.DARK_AQUA+rbd+""+dplayer+" " + ChatColors.WHITE+rbd+""+a+" " + ChatColors.DARK_AQUA+rbd+"#"+dtype+ChatColors.WHITE + ". " + ChatColors.GREY + "(x"+x+"/y"+y+"/z"+z+")");
+
+                                String selector = Selector.FIRST;
+                                String action = "a:block";
+
+                                Phrase phrase = Phrase.LOOKUP_ABILITY_BLOCK; // {placed|broke}
+                                selector = (daction != 0 ? Selector.FIRST : Selector.SECOND);
+                                tag = (daction != 0 ? Color.GREEN + "+" : Color.RED + "-");
+
+                                Chat.sendComponent(this.player, timeago + " " + tag + " " + Phrase.build(phrase, Color.DARK_AQUA + rbd + player + Color.WHITE + rbd, Color.DARK_AQUA + rbd + dname + Color.WHITE, selector) + Color.WHITE + "using " + Color.LIGHT_PURPLE + ability);
+                                PluginChannelListener.getInstance().sendData(this.player, Integer.parseInt(time), phrase, selector, player, dname, (tag.contains("+") ? 1 : -1), x, y, z, wid, rbd, false, tag.contains("+"));
+
+                                action = (actions.isEmpty() ? " (" + action + ")" : "");
+                                Chat.sendComponent(this.player, Color.WHITE + leftPadding + Color.GREY + "^ " + ChatUtils.getCoordinates(command.getName(), wid, x, y, z, true, true) + Color.GREY + Color.ITALIC + action);
+                            }
+                        } else if (actions.contains(12)) {
+                            for (String[] data : lookupList) {
+                                String time = data[0];
+                                String dplayer = data[1];
+                                String x = data[3];
+                                String y = data[4];
+                                String z = data[5];
+                                String message = data[6];
+                                String timeago = ChatUtils.getTimeSince(Integer.parseInt(time), unixtimestamp, true);
+                                Chat.sendComponent(player, timeago + " " + Phrase.build(Phrase.ABILITY, Color.DARK_AQUA + dplayer + Color.WHITE, Color.LIGHT_PURPLE + message + Color.WHITE, Color.DARK_AQUA + x + " " + y + " " + z));
+                            }
+                        } else if (actions.contains(6) || actions.contains(7)) { // Chat/command
                             for (String[] data : lookupList) {
                                 String time = data[0];
                                 String dplayer = data[1];
@@ -211,8 +285,7 @@ public class StandardLookupThread implements Runnable {
                                     PluginChannelListener.getInstance().sendMessageData(player, Integer.parseInt(time), dplayer, message, false, dataX, dataY, dataZ, wid);
                                 }
                             }
-                        }
-                        else if (actions.contains(8)) { // login/logouts
+                        } else if (actions.contains(8)) { // login/logouts
                             for (String[] data : lookupList) {
                                 String time = data[0];
                                 String dplayer = data[1];
@@ -226,8 +299,7 @@ public class StandardLookupThread implements Runnable {
                                 String leftPadding = Color.BOLD + Strings.padStart("", 10, ' ');
                                 if (timeLength % 4 == 0) {
                                     leftPadding = Strings.padStart("", timeLength / 4, ' ');
-                                }
-                                else {
+                                } else {
                                     leftPadding = leftPadding + Color.WHITE + Strings.padStart("", (timeLength - 50) / 4, ' ');
                                 }
 
@@ -236,8 +308,7 @@ public class StandardLookupThread implements Runnable {
                                 Chat.sendComponent(player, Color.WHITE + leftPadding + Color.GREY + "^ " + ChatUtils.getCoordinates(command.getName(), wid, dataX, dataY, dataZ, true, true) + "");
                                 PluginChannelListener.getInstance().sendInfoData(player, Integer.parseInt(time), Phrase.LOOKUP_LOGIN, (action != 0 ? Selector.FIRST : Selector.SECOND), dplayer, -1, dataX, dataY, dataZ, wid);
                             }
-                        }
-                        else if (actions.contains(9)) { // username-changes
+                        } else if (actions.contains(9)) { // username-changes
                             for (String[] data : lookupList) {
                                 String time = data[0];
                                 String user = ConfigHandler.uuidCacheReversed.get(data[1]);
@@ -246,8 +317,7 @@ public class StandardLookupThread implements Runnable {
                                 Chat.sendComponent(player, timeago + " " + Color.WHITE + "- " + Phrase.build(Phrase.LOOKUP_USERNAME, Color.DARK_AQUA + user + Color.WHITE, Color.DARK_AQUA + username + Color.WHITE));
                                 PluginChannelListener.getInstance().sendUsernameData(player, Integer.parseInt(time), user, username);
                             }
-                        }
-                        else if (actions.contains(10)) { // sign messages
+                        } else if (actions.contains(10)) { // sign messages
                             for (String[] data : lookupList) {
                                 String time = data[0];
                                 String dplayer = data[1];
@@ -261,8 +331,7 @@ public class StandardLookupThread implements Runnable {
                                 String leftPadding = Color.BOLD + Strings.padStart("", 10, ' ');
                                 if (timeLength % 4 == 0) {
                                     leftPadding = Strings.padStart("", timeLength / 4, ' ');
-                                }
-                                else {
+                                } else {
                                     leftPadding = leftPadding + Color.WHITE + Strings.padStart("", (timeLength - 50) / 4, ' ');
                                 }
 
@@ -270,8 +339,7 @@ public class StandardLookupThread implements Runnable {
                                 Chat.sendComponent(player, Color.WHITE + leftPadding + Color.GREY + "^ " + ChatUtils.getCoordinates(command.getName(), wid, dataX, dataY, dataZ, true, true) + "");
                                 PluginChannelListener.getInstance().sendMessageData(player, Integer.parseInt(time), dplayer, message, true, dataX, dataY, dataZ, wid);
                             }
-                        }
-                        else if (actions.contains(4) && actions.contains(11)) { // inventory transactions
+                        } else if (actions.contains(4) && actions.contains(11)) { // inventory transactions
                             for (String[] data : lookupList) {
                                 String time = data[0];
                                 String dplayer = data[1];
@@ -295,24 +363,19 @@ public class StandardLookupThread implements Runnable {
                                 if (daction == 2 || daction == 3) { // LOOKUP_ITEM
                                     selector = (daction != 2 ? Selector.FIRST : Selector.SECOND);
                                     tag = (daction != 2 ? Color.GREEN + "+" : Color.RED + "-");
-                                }
-                                else if (daction == 4 || daction == 5) { // LOOKUP_STORAGE
+                                } else if (daction == 4 || daction == 5) { // LOOKUP_STORAGE
                                     selector = (daction == 4 ? Selector.FIRST : Selector.SECOND);
                                     tag = (daction == 4 ? Color.GREEN + "+" : Color.RED + "-");
-                                }
-                                else if (daction == 6 || daction == 7) { // LOOKUP_PROJECTILE
+                                } else if (daction == 6 || daction == 7) { // LOOKUP_PROJECTILE
                                     selector = Selector.SECOND;
                                     tag = Color.RED + "-";
-                                }
-                                else if (daction == ItemLogger.ITEM_BREAK || daction == ItemLogger.ITEM_DESTROY || daction == ItemLogger.ITEM_CREATE) {
+                                } else if (daction == ItemLogger.ITEM_BREAK || daction == ItemLogger.ITEM_DESTROY || daction == ItemLogger.ITEM_CREATE) {
                                     selector = (daction == ItemLogger.ITEM_CREATE ? Selector.FIRST : Selector.SECOND);
                                     tag = (daction == ItemLogger.ITEM_CREATE ? Color.GREEN + "+" : Color.RED + "-");
-                                }
-                                else if (daction == ItemLogger.ITEM_SELL || daction == ItemLogger.ITEM_BUY) { // LOOKUP_TRADE
+                                } else if (daction == ItemLogger.ITEM_SELL || daction == ItemLogger.ITEM_BUY) { // LOOKUP_TRADE
                                     selector = (daction == ItemLogger.ITEM_BUY ? Selector.FIRST : Selector.SECOND);
                                     tag = (daction == ItemLogger.ITEM_BUY ? Color.GREEN + "+" : Color.RED + "-");
-                                }
-                                else { // LOOKUP_CONTAINER
+                                } else { // LOOKUP_CONTAINER
                                     selector = (daction == 0 ? Selector.FIRST : Selector.SECOND);
                                     tag = (daction == 0 ? Color.GREEN + "+" : Color.RED + "-");
                                 }
@@ -320,8 +383,7 @@ public class StandardLookupThread implements Runnable {
                                 Chat.sendComponent(player, timeago + " " + tag + " " + Phrase.build(Phrase.LOOKUP_CONTAINER, Color.DARK_AQUA + rbd + dplayer + Color.WHITE + rbd, "x" + amount, ChatUtils.createTooltip(Color.DARK_AQUA + rbd + dname, tooltip) + Color.WHITE, selector));
                                 PluginChannelListener.getInstance().sendData(player, Integer.parseInt(time), Phrase.LOOKUP_CONTAINER, selector, dplayer, dname, amount, dataX, dataY, dataZ, wid, rbd, true, tag.contains("+"));
                             }
-                        }
-                        else {
+                        } else {
                             for (String[] data : lookupList) {
                                 int drb = Integer.parseInt(data[8]);
                                 String rbd = "";
@@ -346,8 +408,7 @@ public class StandardLookupThread implements Runnable {
                                 String leftPadding = Color.BOLD + Strings.padStart("", 10, ' ');
                                 if (timeLength % 4 == 0) {
                                     leftPadding = Strings.padStart("", timeLength / 4, ' ');
-                                }
-                                else {
+                                } else {
                                     leftPadding = leftPadding + Color.WHITE + Strings.padStart("", (timeLength - 50) / 4, ' ');
                                 }
 
@@ -360,12 +421,10 @@ public class StandardLookupThread implements Runnable {
                                         }
                                         dname = ConfigHandler.playerIdCacheReversed.get(ddata);
                                         isPlayer = true;
-                                    }
-                                    else {
+                                    } else {
                                         dname = EntityUtils.getEntityType(dtype).name();
                                     }
-                                }
-                                else {
+                                } else {
                                     dname = MaterialUtils.getType(dtype).name().toLowerCase(Locale.ROOT);
                                     dname = StringUtils.nameFilter(dname, ddata);
                                 }
@@ -393,20 +452,17 @@ public class StandardLookupThread implements Runnable {
                                         selector = (daction != 2 ? Selector.FIRST : Selector.SECOND);
                                         tag = (daction != 2 ? Color.GREEN + "+" : Color.RED + "-");
                                         action = "a:item";
-                                    }
-                                    else if (daction == 4 || daction == 5) {
+                                    } else if (daction == 4 || daction == 5) {
                                         phrase = Phrase.LOOKUP_STORAGE; // {deposited|withdrew}
                                         selector = (daction != 4 ? Selector.FIRST : Selector.SECOND);
                                         tag = (daction != 4 ? Color.RED + "-" : Color.GREEN + "+");
                                         action = "a:item";
-                                    }
-                                    else if (daction == 6 || daction == 7) {
+                                    } else if (daction == 6 || daction == 7) {
                                         phrase = Phrase.LOOKUP_PROJECTILE; // {threw|shot}
                                         selector = (daction != 7 ? Selector.FIRST : Selector.SECOND);
                                         tag = Color.RED + "-";
                                         action = "a:item";
-                                    }
-                                    else {
+                                    } else {
                                         phrase = Phrase.LOOKUP_CONTAINER; // {added|removed}
                                         selector = (daction != 0 ? Selector.FIRST : Selector.SECOND);
                                         tag = (daction != 0 ? Color.GREEN + "+" : Color.RED + "-");
@@ -415,15 +471,13 @@ public class StandardLookupThread implements Runnable {
 
                                     Chat.sendComponent(player, timeago + " " + tag + " " + Phrase.build(phrase, Color.DARK_AQUA + rbd + dplayer + Color.WHITE + rbd, "x" + amount, ChatUtils.createTooltip(Color.DARK_AQUA + rbd + dname, tooltip) + Color.WHITE, selector));
                                     PluginChannelListener.getInstance().sendData(player, Integer.parseInt(time), phrase, selector, dplayer, dname, (tag.contains("+") ? 1 : -1), dataX, dataY, dataZ, wid, rbd, action.contains("container"), tag.contains("+"));
-                                }
-                                else {
+                                } else {
                                     if (daction == 2 || daction == 3) {
                                         phrase = Phrase.LOOKUP_INTERACTION; // {clicked|killed}
                                         selector = (daction != 3 ? Selector.FIRST : Selector.SECOND);
                                         tag = (daction != 3 ? Color.WHITE + "-" : Color.RED + "-");
                                         action = (daction == 2 ? "a:click" : "a:kill");
-                                    }
-                                    else {
+                                    } else {
                                         phrase = Phrase.LOOKUP_BLOCK; // {placed|broke}
                                         selector = (daction != 0 ? Selector.FIRST : Selector.SECOND);
                                         tag = (daction != 0 ? Color.GREEN + "+" : Color.RED + "-");
@@ -444,27 +498,22 @@ public class StandardLookupThread implements Runnable {
                             }
                             Chat.sendComponent(player, ChatUtils.getPageNavigation(command.getName(), page, total_pages));
                         }
-                    }
-                    else if (rows > 0) {
+                    } else if (rows > 0) {
                         Chat.sendMessage(player, Color.DARK_AQUA + "CoreProtect " + Color.WHITE + "- " + Phrase.build(Phrase.NO_RESULTS_PAGE, Selector.FIRST));
-                    }
-                    else {
+                    } else {
                         Chat.sendMessage(player, Color.DARK_AQUA + "CoreProtect " + Color.WHITE + "- " + Phrase.build(Phrase.NO_RESULTS));
                     }
-                }
-                else {
+                } else {
                     Chat.sendMessage(player, Color.DARK_AQUA + "CoreProtect " + Color.WHITE + "- " + Phrase.build(Phrase.USER_NOT_FOUND, baduser));
                 }
                 statement.close();
-            }
-            else {
+            } else {
                 Chat.sendMessage(player, Color.DARK_AQUA + "CoreProtect " + Color.WHITE + "- " + Phrase.build(Phrase.DATABASE_BUSY));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        ConfigHandler.lookupThrottle.put(player.getName(), new Object[] { false, System.currentTimeMillis() });
+        ConfigHandler.lookupThrottle.put(player.getName(), new Object[]{false, System.currentTimeMillis()});
     }
 }

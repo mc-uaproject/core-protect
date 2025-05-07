@@ -40,6 +40,7 @@ permissions:
       coreprotect.lookup.chat: true
       coreprotect.lookup.command: true
       coreprotect.lookup.ability: true
+      coreprotect.lookup.abilityblock: true
       coreprotect.lookup.session: true
       coreprotect.lookup.username: true
       coreprotect.lookup.block: true
@@ -71,6 +72,7 @@ permissions:
       coreprotect.lookup.chat: true
       coreprotect.lookup.command: true
       coreprotect.lookup.ability: true
+      coreprotect.lookup.abilityblock: true
       coreprotect.lookup.session: true
       coreprotect.lookup.username: true
       coreprotect.lookup.block: true
@@ -91,6 +93,9 @@ permissions:
     default: op
   coreprotect.lookup.ability:
     description: Has permission to lookup beyonder abilities
+    default: op
+  coreprotect.lookup.abilityblock:
+    description: Has permission to lookup beyonder abilities block changes
     default: op
   coreprotect.lookup.session:
     description: Has permission to lookup player sessions

@@ -15,6 +15,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -46,11 +48,11 @@ public class LookupRaw extends Queue {
 
             while (results.next()) {
                 if (actionList.contains(13) || actionList.contains(14)) {
-                    int resultData = 0;
+                    int resultData;
                     int resultAmount = -1;
+                    byte[] resultMeta;
+                    byte[] resultBlockData;
                     int resultTable = 0;
-                    byte[] resultMeta = null;
-                    byte[] resultBlockData = null;
                     long resultId = results.getLong("id");
                     int resultUserId = results.getInt("user");
                     int resultAction = results.getInt("action");
@@ -63,9 +65,17 @@ public class LookupRaw extends Queue {
                     int resultWorldId = results.getInt("wid");
                     String player = results.getString("player");
                     String ability = results.getString("ability");
+                    resultBlockData = results.getBytes("blockdata");
+
+                    boolean valid = true;
+                    if (!lookup) {
+                        if (invalidRollbackActions.contains(resultAction)) {
+                            valid = false;
+                        }
+                    }
 
                     boolean hasTbl = false;
-                    if ((lookup && actionList.size() == 0) || actionList.contains(4) || actionList.contains(5) || actionList.contains(11)) {
+                    if ((lookup && actionList.isEmpty()) || actionList.contains(4) || actionList.contains(5) || actionList.contains(11)) {
                         resultData = results.getInt("data");
                         resultAmount = results.getInt("amount");
                         resultMeta = results.getBytes("metadata");
@@ -77,24 +87,34 @@ public class LookupRaw extends Queue {
                         resultBlockData = results.getBytes("blockdata");
                     }
 
-                    boolean valid = true;
-                    if (!lookup) {
-                        if (invalidRollbackActions.contains(resultAction)) {
-                            valid = false;
-                        }
+
+                    if (player == null || ability == null || ability.isEmpty() || player.isEmpty()) {
+                        valid = false;
                     }
 
                     if (valid) {
+                        Object[] dataArray;
+
                         if (hasTbl) {
-                            Object[] dataArray = new Object[]{resultId, resultTime, resultUserId, resultX, resultY, resultZ, resultType, resultData, resultAction, resultRolledBack, resultWorldId, resultAmount, resultMeta, resultBlockData, resultTable, player, ability};
-                            list.add(dataArray);
+                            dataArray = new Object[]{resultId, resultTime, resultUserId, resultX, resultY, resultZ, resultType, resultData, resultAction, resultRolledBack, resultWorldId, resultAmount, resultMeta, resultBlockData, resultTable, player, ability};
                         } else {
-                            Object[] dataArray = new Object[]{resultId, resultTime, resultUserId, resultX, resultY, resultZ, resultType, resultData, resultAction, resultRolledBack, resultWorldId, resultAmount, resultMeta, resultBlockData, player, ability};
-                            list.add(dataArray);
+                            dataArray = new Object[]{resultId, resultTime, resultUserId, resultX, resultY, resultZ, resultType, resultData, resultAction, resultRolledBack, resultWorldId, resultAmount, resultMeta, resultBlockData, player, ability};
                         }
+                        list.add(dataArray);
                     }
-                }
-                if (actionList.contains(6) || actionList.contains(7)) {
+                } else if (actionList.contains(12)) {
+                    long resultId = results.getLong("id");
+                    int resultTime = results.getInt("time");
+                    int resultUserId = results.getInt("user");
+                    int resultWorldId = results.getInt("wid");
+                    int resultX = results.getInt("x");
+                    int resultY = results.getInt("y");
+                    int resultZ = results.getInt("z");
+                    String resultAction = results.getString("ability");
+
+                    Object[] dataArray = new Object[]{resultId, resultTime, resultUserId, resultWorldId, resultX, resultY, resultZ, resultAction};
+                    list.add(dataArray);
+                } else if (actionList.contains(6) || actionList.contains(7)) {
                     long resultId = results.getLong("id");
                     int resultTime = results.getInt("time");
                     int resultUserId = results.getInt("user");
@@ -247,16 +267,17 @@ public class LookupRaw extends Queue {
                     }
                 }
             }
-            results.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         Consumer.isPaused = false;
         return list;
     }
 
-    static ResultSet rawLookupResultSet(Statement statement, CommandSender user, List<String> checkUuids, List<String> checkUsers, List<Object> restrictList, Map<Object, Boolean> excludeList, List<String> excludeUserList, List<Integer> actionList, Location location, Integer[] radius, Long[] rowData, long startTime, long endTime, int limitOffset, int limitCount, boolean restrictWorld, boolean lookup, boolean count) {
+    static ResultSet rawLookupResultSet(Statement statement, CommandSender
+                                                user, List<String> checkUuids, List<String> checkUsers, List<Object> restrictList, Map<Object, Boolean> excludeList, List<String> excludeUserList, List<Integer> actionList, Location
+                                                location, Integer[] radius, Long[] rowData, long startTime, long endTime, int limitOffset, int limitCount,
+                                        boolean restrictWorld, boolean lookup, boolean count) {
         ResultSet results = null;
 
         try {
@@ -568,7 +589,13 @@ public class LookupRaw extends Queue {
             String rows = "rowid as id,time,user,wid,x,y,z,action,type,data,meta,blockdata,rolled_back";
             String queryOrder = " ORDER BY rowid DESC";
 
-            if (actionList.contains(4) || actionList.contains(5)) {
+            if (actionList.contains(13) || actionList.contains(14)) {
+                queryTable = "ability_block";
+                rows = "rowid as id,time,user,wid,x,y,z,type,data, meta, blockdata,action,rolled_back,player,ability";
+            } else if (actionList.contains(12)) {
+                queryTable = "ability";
+                rows = "rowid as id,time,user,wid,x,y,z,ability";
+            } else if (actionList.contains(4) || actionList.contains(5)) {
                 queryTable = "container";
                 rows = "rowid as id,time,user,wid,x,y,z,action,type,data,rolled_back,amount,metadata";
             } else if (actionList.contains(6) || actionList.contains(7)) {
