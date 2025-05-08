@@ -15,9 +15,9 @@ Development
 2. Open, load both Gradle and Maven projects in your IDE
 3. Run `gradle build` to build the project. Probably will fail due to missing dependencies.
 4. Run `mvn clean install` to install to your local maven repository.
-5. Run `mvn package` to build the plugin jar file. Will be located in `target/CoreProtect-22.4.{version}.jar`
+5. Run `mvn package` to build the plugin jar file. Will be located in `target/CoreProtect-23.1.jar`
 6. Define local maven repository in your IDE to use the local maven repository for the dependencies: `~/.m2/repository`
-7. Add this to your build.gradle: `compileOnly('net.coreprotect:CoreProtect:22.4.{version}')`
+7. Add this to your build.gradle: `compileOnly('net.coreprotect:CoreProtect:23.1')`
 
 Modifications
 -----
@@ -41,7 +41,7 @@ repositories {
 
 ```gradle
 dependencies {
-    compileOnly 'com.github.mc-uaproject:uaproject-core-protect:v22.4.{version}'
+    compileOnly 'com.github.mc-uaproject:uaproject-core-protect:v23.1'
 }
 ```
 
