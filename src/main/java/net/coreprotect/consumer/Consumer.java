@@ -98,6 +98,51 @@ public class Consumer extends Process implements Runnable, Thread.UncaughtExcept
         return consumerThread != null && consumerThread.isAlive();
     }
 
+    /**
+     * Waits for the consumer to finish processing all pending queue items.
+     * This should be called before rollback operations to prevent race conditions.
+     * 
+     * @param timeoutMs Maximum time to wait in milliseconds
+     * @return true if queue was successfully flushed, false if timeout occurred
+     */
+    public static boolean flushQueue(long timeoutMs) {
+        if (!isRunning()) {
+            return true;
+        }
+
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            while (System.currentTimeMillis() - startTime < timeoutMs) {
+                // Check if both consumer queues are empty and no transaction is in progress
+                boolean isEmpty = (getConsumerSize(0) == 0 && getConsumerSize(1) == 0);
+                
+                if (isEmpty && !transacting) {
+                    // Give a small additional delay to ensure any ongoing database operations complete
+                    Thread.sleep(50);
+                    // Double-check after the delay
+                    if (getConsumerSize(0) == 0 && getConsumerSize(1) == 0 && !transacting) {
+                        return true;
+                    }
+                }
+                
+                Thread.sleep(10);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Flushes the queue with a default timeout of 30 seconds
+     */
+    public static boolean flushQueue() {
+        return flushQueue(30000);
+    }
+
     private static void pauseConsumer(int process_id) {
         try {
             while ((ConfigHandler.serverRunning || ConfigHandler.converterRunning || ConfigHandler.migrationRunning) && (Consumer.isPaused || ConfigHandler.pauseConsumer || ConfigHandler.purgeRunning || Consumer.consumer_id.get(process_id)[1] == 1)) {

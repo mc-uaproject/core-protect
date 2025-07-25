@@ -4,6 +4,7 @@ import net.coreprotect.api.BlockAPI;
 import net.coreprotect.api.QueueLookup;
 import net.coreprotect.api.SessionLookup;
 import net.coreprotect.config.Config;
+import net.coreprotect.consumer.Consumer;
 import net.coreprotect.consumer.Queue;
 import net.coreprotect.database.Database;
 import net.coreprotect.database.Lookup;
@@ -603,7 +604,7 @@ public class CoreProtectAPI extends Queue {
             return null;
         }
 
-        return processData(time, radius, radiusLocation, parseList(restrictBlocks), parseList(excludeBlocks), restrictUsers, excludeUsers, actionList, 0, 2, -1, -1, false);
+        return performRollbackWithRetry(time, radius, radiusLocation, parseList(restrictBlocks), parseList(excludeBlocks), restrictUsers, excludeUsers, actionList, 0, 2, -1, -1, false);
     }
 
     /**
@@ -624,7 +625,96 @@ public class CoreProtectAPI extends Queue {
             return null;
         }
 
-        return processData(user, time, radius, location, parseList(restrict), parseList(exclude), 0, 2, -1, -1, false);
+        return performRollbackWithRetry(user, time, radius, location, parseList(restrict), parseList(exclude), 0, 2, -1, -1, false);
+    }
+
+    /**
+     * Performs rollback with retry mechanism to handle race conditions and database timeouts.
+     * 
+     * @param time Time constraint in seconds
+     * @param radius Radius for the operation
+     * @param location Center location for the radius
+     * @param restrictBlocksMap Map of blocks to include in the rollback
+     * @param excludeBlocks Map of blocks to exclude from the rollback
+     * @param restrictUsers List of users to include in the rollback
+     * @param excludeUsers List of users to exclude from the rollback
+     * @param actionList List of actions to include in the rollback
+     * @param action Action type for the rollback
+     * @param lookup Lookup type for the rollback
+     * @param offset Offset for pagination
+     * @param rowCount Maximum number of results to return
+     * @param useLimit Whether to use pagination limits
+     * @return List of results or null if rollback fails after all retries
+     */
+    private List<String[]> performRollbackWithRetry(int time, int radius, Location location, Map<Object, Boolean> restrictBlocksMap, Map<Object, Boolean> excludeBlocks, List<String> restrictUsers, List<String> excludeUsers, List<Integer> actionList, int action, int lookup, int offset, int rowCount, boolean useLimit) {
+        final int maxRetries = 3;
+        final long retryDelayMs = 2000; // 2 seconds
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                // Flush the consumer queue to ensure all pending logs are written before rollback
+                boolean queueFlushed = Consumer.flushQueue(30000); // 30 second timeout
+                
+                if (!queueFlushed && attempt == 1) {
+                    // Log warning on first attempt if queue flush times out
+                    Chat.console("[CoreProtect] Warning: Queue flush timed out before rollback attempt " + attempt);
+                }
+                
+                List<String[]> result = processData(time, radius, location, restrictBlocksMap, excludeBlocks, restrictUsers, excludeUsers, actionList, action, lookup, offset, rowCount, useLimit);
+                
+                // Check if rollback was successful by examining the result
+                if (result != null && isRollbackSuccessful(result)) {
+                    if (attempt > 1) {
+                        Chat.console("[CoreProtect] Rollback succeeded on attempt " + attempt);
+                    }
+                    return result;
+                }
+                
+                if (attempt < maxRetries) {
+                    Chat.console("[CoreProtect] Rollback attempt " + attempt + " failed, retrying in " + (retryDelayMs / 1000) + " seconds...");
+                    Thread.sleep(retryDelayMs);
+                }
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Chat.console("[CoreProtect] Rollback interrupted on attempt " + attempt);
+                break;
+            } catch (Exception e) {
+                Chat.console("[CoreProtect] Rollback attempt " + attempt + " failed with exception: " + e.getMessage());
+                if (attempt < maxRetries) {
+                    try {
+                        Thread.sleep(retryDelayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        Chat.console("[CoreProtect] Rollback failed after " + maxRetries + " attempts");
+        return null;
+    }
+
+    /**
+     * Performs rollback with retry mechanism (deprecated method signature).
+     */
+    private List<String[]> performRollbackWithRetry(String user, int time, int radius, Location location, Map<Object, Boolean> restrict, Map<Object, Boolean> exclude, int action, int lookup, int offset, int rowCount, boolean useLimit) {
+        List<String> restrictUsers = user != null ? List.of(user) : null;
+        return performRollbackWithRetry(time, radius, location, restrict, exclude, restrictUsers, null, null, action, lookup, offset, rowCount, useLimit);
+    }
+
+    /**
+     * Checks if a rollback operation was successful based on the result.
+     * 
+     * @param result The result from the rollback operation
+     * @return true if the rollback appears to have been successful
+     */
+    private boolean isRollbackSuccessful(List<String[]> result) {
+        // If result is empty, it might indicate no changes were found or operation failed
+        // We consider non-null result as potentially successful
+        // The actual success determination might need to be more sophisticated based on CoreProtect internals
+        return result != null;
     }
 
     /**
